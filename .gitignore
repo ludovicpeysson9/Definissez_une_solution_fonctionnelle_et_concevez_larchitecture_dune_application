@@ -1,0 +1,14 @@
+# Java / Maven
+/back/support-service/target/
+/back/support-service/.mvn/
+/back/support-service/*.iml
+
+# Node / Vue
+/front/support-chat-frontend/node_modules/
+/front/support-chat-frontend/dist/
+
+# IDE
+.vscode/
+.idea/
+*.log
+.DS_Store
