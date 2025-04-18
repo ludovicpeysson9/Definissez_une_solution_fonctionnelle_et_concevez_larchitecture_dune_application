@@ -11,12 +11,16 @@ export default defineConfig({
   plugins: [
     vue(),
     vueDevTools(),
-    eslintPlugin({
-      cache: false,
-      include: ['src/**/*.js', 'src/**/*.ts', 'src/**/*.vue'],
-      exclude: ['node_modules', 'dist'],
-    }),
   ],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/api/, '')
+      }
+    }
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
