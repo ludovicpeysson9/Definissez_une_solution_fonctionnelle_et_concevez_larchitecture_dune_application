@@ -39,8 +39,8 @@ Proof‑of‑concept d’un chat de support, front Vue 3 + Vite et back Spring�
 
 ## ⚙️ Prérequis frontend (Vue 3 + Vite)
 
-- Node.js **v22.12.0**
-- npm **v10.9.2**
+- Node.js recommandé **v22.12.0**
+- npm recommandé **v10.9.2**
 
 ---
 
@@ -49,6 +49,6 @@ Proof‑of‑concept d’un chat de support, front Vue 3 + Vite et back Spring�
 Placez-vous dans le dossier `chat-frontend` puis exécutez :
 
 ```bash
-npm install
+npm install```
 
 Pour lancer l'application : npm run dev
