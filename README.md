@@ -49,6 +49,7 @@ Proof‑of‑concept d’un chat de support, front Vue 3 + Vite et back Spring�
 Placez-vous dans le dossier `chat-frontend` puis exécutez :
 
 ```bash
-npm install```
+npm install
+---
 
 Pour lancer l'application : npm run dev
