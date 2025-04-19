@@ -3,7 +3,7 @@
         <h1 class="page-title">Your Car Your Way Support Chat</h1>
     </header>
 
-    <div class="chat-wrapper">
+    <div v-if="showChat" class="chat-wrapper">
         <div class="chat-container">
             <div v-if="conv" class="chat-box">
                 <div class="role-toggle">
@@ -15,9 +15,9 @@
                         <input type="radio" value="support" v-model="role" />
                         Support
                     </label>
-                    <span class="copy-link">
+                    <span v-if="conv" class="copy-link">
                         <button @click="copyLink" class="copy-btn">
-                            Copier le lien de partage
+                            Copier l'id de la conversation
                         </button>
                     </span>
                 </div>
@@ -42,10 +42,19 @@
                 </div>
             </div>
             <div v-else class="no-conv">
-                <div>
-                    <input v-model="joinId" placeholder="ID de conversation" />
-                    <button @click="joinConv" :disabled="!joinId || isLoading">Rejoindre</button>
+                <div v-if="savedId" class="join-last">
+                    <button @click="joinLast" :disabled="isLoading">
+                        Rejoindre la dernière conversation
+                    </button>
                 </div>
+
+                <div class="manual-join">
+                    <input v-model="joinId" placeholder="ID de conversation" />
+                    <button @click="joinConv" :disabled="!joinId || isLoading">
+                        Rejoindre
+                    </button>
+                </div>
+
                 <button class="start-btn" @click="newConv" :disabled="isLoading">
                     <span v-if="isLoading">Création...</span>
                     <span v-else>Démarrer une conversation</span>
@@ -54,7 +63,7 @@
         </div>
     </div>
 
-    <div class="fab" @click="newConv" title="Nouvelle conversation">
+    <div class="fab" @click="showChat = !showChat" title="Ouvrir le chat">
         <span class="icon">🧑‍💻</span>
         <span class="badge">?</span>
     </div>
@@ -71,6 +80,9 @@ const isLoading = ref(false)
 const isSending = ref(false)
 const error = ref(null)
 const msgList = ref(null)
+const showChat = ref(false)
+const savedId = ref(localStorage.getItem('chatConvId') || '')
+
 const updateURL = (id) => {
     const url = new URL(window.location)
     url.searchParams.set('convId', id)
@@ -79,13 +91,17 @@ const updateURL = (id) => {
 let poller
 
 const copyLink = () => {
-    navigator.clipboard.writeText(window.location.href)
-        .then(() => alert('Lien copié !'))
-        .catch(() => alert('Impossible de copier le lien'))
+    if (!conv.value?.id) {
+        alert("Aucune conversation à copier")
+        return
+    }
+    navigator.clipboard.writeText(conv.value.id)
+        .then(() => alert(`ID copié : ${conv.value.id}`))
+        .catch(() => alert('Impossible de copier l’ID'))
 }
 
 const joinId = ref('')
-const joinConv = async () => {
+/*const joinConv = async () => {
     isLoading.value = true
     error.value = null
     try {
@@ -99,6 +115,32 @@ const joinConv = async () => {
     } finally {
         isLoading.value = false
     }
+}*/
+const joinConv = async () => {
+    const id = joinId.value || savedId.value
+    if (!id) return
+    isLoading.value = true
+    error.value = null
+    try {
+        const { data } = await api.getConversation(id)
+        conv.value = data
+        localStorage.setItem('chatConvId', data.id)
+        if (showChat.value) {
+            startPolling(data.id)
+            scrollToBottom()
+        }
+        savedId.value = data.id
+        //startPolling(data.id)
+        scrollToBottom()
+    } catch {
+        error.value = "Impossible de rejoindre cette conversation."
+    } finally {
+        isLoading.value = false
+    }
+}
+const joinLast = async () => {
+    if (!savedId.value) return
+    await joinConv()
 }
 
 
@@ -119,10 +161,26 @@ watch(
         scrollToBottom()
     }
 )
+watch(showChat, open => {
+
+    clearInterval(poller)
+    if (conv.value?.id) {
+        startPolling(conv.value.id)
+        scrollToBottom()
+    } else {
+        clearInterval(poller)
+    }
+
+    if (open) {
+        savedId.value = localStorage.getItem('chatConvId') || ''
+        conv.value = null
+        joinId.value = ''
+        error.value = null
+    }
+})
 
 onMounted(async () => {
-    const savedId = localStorage.getItem('chatConvId')
-    if (savedId) {
+    /*if (savedId) {
         isLoading.value = true
         try {
             const { data } = await api.getConversation(savedId)
@@ -131,7 +189,8 @@ onMounted(async () => {
             scrollToBottom()
         } catch { }
         finally { isLoading.value = false }
-    }
+    }*/
+    onUnmounted(() => clearInterval(poller))
 })
 
 const newConv = async () => {
@@ -141,7 +200,12 @@ const newConv = async () => {
         const { data } = await api.createConversation()
         conv.value = data
         localStorage.setItem('chatConvId', data.id)
-        startPolling(data.id)
+        if (showChat.value) {
+            startPolling(data.id)
+            scrollToBottom()
+        }
+        savedId.value = data.id
+        //startPolling(data.id)
         scrollToBottom()
     } catch (e) {
         error.value = "Impossible de créer la conversation."
@@ -150,10 +214,8 @@ const newConv = async () => {
     }
 }
 
-// Nettoyage au démontage
 onUnmounted(() => clearInterval(poller))
 
-// Démarrage / arrêt du polling
 function startPolling(convId) {
     updateURL(convId)
     poller = setInterval(async () => {
@@ -171,7 +233,6 @@ const send = async () => {
         await api.addMessage(conv.value.id, { sender: role.value, content: draft.value })
         const { data } = await api.getConversation(conv.value.id)
         conv.value = data
-        // ← ajoutez ceci
         scrollToBottom()
         draft.value = ''
     } catch (e) {
@@ -184,12 +245,10 @@ const send = async () => {
 </script>
 
 <style scoped>
-/* Constants */
 :root {
     --header-height: 60px;
 }
 
-/* Header */
 .page-header {
     position: fixed;
     top: 0;
@@ -209,7 +268,6 @@ const send = async () => {
     margin: 0;
 }
 
-/* Wrapper absolute full-space below header */
 .chat-wrapper {
     position: absolute;
     top: var(--header-height);
@@ -222,7 +280,6 @@ const send = async () => {
     overflow: hidden;
 }
 
-/* Chat container sizing mobile-first */
 .chat-container {
     width: 90vw;
     max-width: 600px;
@@ -244,7 +301,6 @@ const send = async () => {
     overflow: hidden;
 }
 
-/* Desktop adjustment */
 @media (min-width: 768px) {
     .chat-container {
         width: 40vw;
@@ -344,7 +400,6 @@ const send = async () => {
     cursor: not-allowed;
 }
 
-/* Floating Action Button */
 .fab {
     position: fixed;
     bottom: 20px;
