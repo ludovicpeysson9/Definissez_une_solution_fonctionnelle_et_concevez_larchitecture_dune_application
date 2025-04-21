@@ -101,21 +101,6 @@ const copyLink = () => {
 }
 
 const joinId = ref('')
-/*const joinConv = async () => {
-    isLoading.value = true
-    error.value = null
-    try {
-        const { data } = await api.getConversation(joinId.value)
-        conv.value = data
-        localStorage.setItem('chatConvId', data.id)
-        startPolling(data.id)
-        scrollToBottom()
-    } catch {
-        error.value = "Impossible de rejoindre cette conversation."
-    } finally {
-        isLoading.value = false
-    }
-}*/
 const joinConv = async () => {
     const id = joinId.value || savedId.value
     if (!id) return
@@ -130,7 +115,6 @@ const joinConv = async () => {
             scrollToBottom()
         }
         savedId.value = data.id
-        //startPolling(data.id)
         scrollToBottom()
     } catch {
         error.value = "Impossible de rejoindre cette conversation."
@@ -180,16 +164,6 @@ watch(showChat, open => {
 })
 
 onMounted(async () => {
-    /*if (savedId) {
-        isLoading.value = true
-        try {
-            const { data } = await api.getConversation(savedId)
-            conv.value = data
-            startPolling(savedId)
-            scrollToBottom()
-        } catch { }
-        finally { isLoading.value = false }
-    }*/
     onUnmounted(() => clearInterval(poller))
 })
 
@@ -205,7 +179,6 @@ const newConv = async () => {
             scrollToBottom()
         }
         savedId.value = data.id
-        //startPolling(data.id)
         scrollToBottom()
     } catch (e) {
         error.value = "Impossible de créer la conversation."
